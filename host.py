@@ -9,8 +9,14 @@ class Host:
     def add_vm(self, vm: VM):
         self.vms.append(vm)
 
-    def print_info(self):
+    def show_info(self):
         print(f"\nTimestamp: {self.timestamp}")
         print(f"Hostname: {self.hostname}")
-        for idx, vm in enumerate(self.vms):
-            vm.print_info(idx)
+        print (f"Total VMs: {len(self.vms)}\n")
+        for i, vm in enumerate(self.vms, 1):
+            print(f"    VM {i} - UUID: {vm.uuid}")
+            print(f"    - Steal     : {vm.steal}")
+            print(f"    - Usage     : {vm.usage}")
+            print(f"    - Net In    : {vm.net_in}")
+            print(f"    - Net Out   : {vm.net_out}")
+            print(f"    - CPU Alloc : {vm.cpu_allocated}")

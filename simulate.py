@@ -64,5 +64,5 @@ class Inspector:
                 vm = VM(uuid, steal, usage, net_in, net_out, alloc)
                 host.add_vm(vm)
 
-            host.print_info()
+            host.show_info()
             
