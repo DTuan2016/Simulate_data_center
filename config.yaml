@@ -1,0 +1,17 @@
+# # vm_features:
+# #   - timestamp
+# #   - replaced
+# #   - hostname
+# #   - uuid
+# #   - cpu_steal
+# #   - cpu_usage
+# #   - network_in
+# #   - network_out
+# #   - cpu_allocated
+
+# # host_features:
+# #   - timestamp
+# #   - hostname
+# #   - host_cpu_usage
+
+# condition_vm_off : 5 # 5 minutes don't have vm cpu usage
