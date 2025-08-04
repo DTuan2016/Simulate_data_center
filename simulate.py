@@ -1,6 +1,8 @@
 from vm_uuid import VM
 import pandas as pd
+import numpy as np
 import ast
+from datetime import datetime, timedelta
 from host import Host
     
 class Cluster:
@@ -47,46 +49,17 @@ class Cluster:
                     net_in = net_ins[i] if i < len(net_ins) else None
                     net_out = net_outs[i] if i < len(net_outs) else None
                     alloc = allocs[i] if i < len(allocs) else None
+                    
+                    vm_is_shutdown = False
+                    vm = VM(hostname, uuid, steal, usage, net_in, net_out, alloc, vm_is_shutdown)
 
-                    vm = VM(hostname, uuid, steal, usage, net_in, net_out, alloc)
-                    # vm.is_shutdown = host.is_vm_shutdown(uuid, timestamp)
-
+                    window_size = 5 # Minutes
+                    vm.is_shutdown = host.is_vm_shutdown(uuid, timestamp, window_size, df_vm)
                     host.add_vm_to_host(vm)
 
             hosts.append(host)
 
         return hosts
-
-    # def is_vm_shutdown(self, uuid: str, current_timestamp: str, window_minutes: int = 5):
-    #     try:
-    #         current_time = datetime.strptime(current_timestamp, "%Y-%m-%d %H:%M:%S")
-    #     except Exception as e:
-    #         print(f"[HOST] Lỗi định dạng thời gian: {e}")
-    #         return False
-
-    #     time_range = [
-    #         (current_time - timedelta(minutes=i)).strftime("%Y-%m-%d %H:%M:%S")
-    #         for i in range(window_minutes)
-    #     ]
-
-    #     df_window = self.df_vm[self.df_vm['timestamp'].isin(time_range)]
-
-    #     for _, row in df_window.iterrows():
-    #         uuid_list = self._parse_list_of_strings(row["uuid_set"])
-    #         usages = self._parse_to_list(row["vm_cpu_usage"])
-
-    #         if uuid not in uuid_list:
-    #             return False
-
-    #         idx = uuid_list.index(uuid)
-    #         try:
-    #             usage = float(usages[idx])
-    #             if not np.isnan(usage):
-    #                 return False
-    #         except:
-    #             return False
-
-    #     return True
     
     def show_info_data_center(self):
         # print(f"\n[SIMULATE] Timestamp: {self.timestamp}")
@@ -126,3 +99,67 @@ class Cluster:
         dest_host.vms.append(vm_to_migrate)
 
         print(f"[DATACENTER] Đã chuyển VM {uuid} từ host {source_host.hostname} sang host {dest_host.hostname}")
+        
+    def update_vm_metrics_after_timer(self, timestamp_input, timer, data_vm_path, data_host_path):
+        if isinstance(timestamp_input, str):
+            timestamp_input = pd.to_datetime(timestamp_input)
+
+        timestamp_str = timestamp_input + timedelta(minutes=timer)
+
+        df_vm = pd.read_csv(data_vm_path)
+        df_host = pd.read_csv(data_host_path)
+
+        df_host["timestamp"] = pd.to_datetime(df_host["timestamp"])
+        df_vm["timestamp"] = pd.to_datetime(df_vm["timestamp"])
+
+        host_rows = df_host[df_host['timestamp'] == timestamp_str]
+        vm_rows = df_vm[df_vm['timestamp'] == timestamp_str]
+
+        if host_rows.empty:
+            print(f"[DATACENTER] Không tìm thấy dữ liệu host tại thời điểm {timestamp_str}")
+        if vm_rows.empty:
+            print(f"[DATACENTER] Không tìm thấy dữ liệu VM tại thời điểm {timestamp_str}")
+
+        for _, row in host_rows.iterrows():
+            hostname = row['hostname']
+            host_cpu_usage = float(row.get('host_cpu_usage', 0.0))
+
+            host = next((h for h in self.hosts if h.hostname == hostname), None)
+            if host is not None:
+                host.host_cpu_usage = host_cpu_usage
+            else:
+                host = Host(hostname, host_cpu_usage)
+                self.hosts.append(host)
+
+            vm_rows_for_host = vm_rows[vm_rows['hostname'] == hostname]
+            for _, vm_row in vm_rows_for_host.iterrows():
+                uuid_list = host._parse_list_of_strings(vm_row["uuid_set"])
+                steals = host._parse_to_list(vm_row["vm_cpu_steal"])
+                usages = host._parse_to_list(vm_row["vm_cpu_usage"])
+                net_ins = host._parse_to_list(vm_row["vm_network_in"])
+                net_outs = host._parse_to_list(vm_row["vm_network_out"])
+                allocs = host._parse_to_list(vm_row["vm_cpu_allocated"])
+
+                for i, uuid in enumerate(uuid_list):
+                    steal = steals[i] if i < len(steals) else None
+                    usage = usages[i] if i < len(usages) else None
+                    net_in = net_ins[i] if i < len(net_ins) else None
+                    net_out = net_outs[i] if i < len(net_outs) else None
+                    alloc = allocs[i] if i < len(allocs) else None
+
+                    vm = next((v for v in host.vms if v.uuid == uuid), None)
+                    if vm is not None:
+                        # Cập nhật VM đã có
+                        vm.steal = steal
+                        vm.usage = usage
+                        vm.net_in = net_in
+                        vm.net_out = net_out
+                        vm.cpu_allocated = alloc
+                    else:
+                        # Tạo VM mới
+                        vm = VM(hostname, uuid, steal, usage, net_in, net_out, alloc)
+                        host.add_vm_to_host(vm)
+
+                    # Cập nhật trạng thái shutdown
+                    window_size = 5  # phút
+                    vm.is_shutdown = host.is_vm_shutdown(uuid, timestamp_str, window_size, df_vm)

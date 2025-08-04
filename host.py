@@ -1,6 +1,6 @@
-from vm_uuid import VM
 import numpy as np
 from vm_uuid import VM
+import pandas as pd
 from datetime import datetime, timedelta
 import ast
 
@@ -24,8 +24,8 @@ class Host:
 
     def show_info_host(self):
         print(f"[HOST] Host: {self.hostname} | CPU Usage: {self.host_cpu_usage:.2f}%")
-        for i, vm in self.vms:
-            vm.show_info_vm(i)
+        for i, vm in enumerate(self.vms):
+            vm.print_info(i)
         
     def _parse_to_list(self, field: str, value_type=float):
         """Parse chuỗi thành list theo kiểu dữ liệu cụ thể (mặc định: float)."""
@@ -55,3 +55,40 @@ class Host:
             except Exception:
                 return []
         return []
+    
+    def is_vm_shutdown(self, uuid: str, current_timestamp, window_minutes: int = 5, df_vm=None):
+        try:
+            if isinstance(current_timestamp, str):
+                current_time = datetime.strptime(current_timestamp, "%Y-%m-%d %H:%M:%S")
+            elif isinstance(current_timestamp, pd.Timestamp):
+                current_time = current_timestamp.to_pydatetime()
+            elif isinstance(current_timestamp, datetime):
+                current_time = current_timestamp
+            else:
+                print(f"[HOST] Kiểu thời gian không hợp lệ: {type(current_timestamp)}")
+                return False
+        except Exception as e:
+            print(f"[HOST] Lỗi định dạng thời gian: {e}")
+            return False
+
+        time_range = [
+            current_time - timedelta(minutes=i) for i in range(window_minutes)
+        ]
+        df_window = df_vm[df_vm['timestamp'].isin(time_range)]
+
+        for _, row in df_window.iterrows():
+            uuid_list = self._parse_list_of_strings(row["uuid_set"])
+            usages = self._parse_to_list(row["vm_cpu_usage"])
+
+            if uuid not in uuid_list:
+                return False
+
+            idx = uuid_list.index(uuid)
+            try:
+                usage = float(usages[idx])
+                if not np.isnan(usage):
+                    return False
+            except:
+                return False
+
+        return True

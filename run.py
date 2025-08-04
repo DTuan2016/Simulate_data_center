@@ -6,12 +6,14 @@ import threading
 import pandas as pd
 
 timer = 0
+timer_running = False
 
 def start_timer():
     def run():
-        global timer
-        while True:
-            time.sleep(1)
+        global timer, timer_running
+        timer_running = True
+        while timer_running:
+            time.sleep(60)
             timer += 1
     threading.Thread(target=run, daemon=True).start()
 
@@ -56,7 +58,7 @@ def is_september(timestamp_str):
 
 
 def run():
-    start_timer()
+    # start_timer()
     print("[RUN] Nhập thời gian (YYYY-MM-DD HH:MM:SS), hoặc gõ 'exit' để thoát")
 
     while True:
@@ -81,6 +83,9 @@ def run():
             print(f"[RUN] Đã nạp dữ liệu VM từ: {vm_file}")
             print(f"[RUN] Đã nạp dữ liệu Host từ: {host_file}")
             timestamp = input_str
+            timer = 0
+            timer_running = False
+            start_timer()
 
             # Khởi tạo mô hình trung tâm dữ liệu
             cluster = Cluster(host_file, vm_file, timestamp)
@@ -90,16 +95,13 @@ def run():
                 print("\n[RUN] Chọn một hành động:")
                 print("  1. Hiển thị danh sách VM theo từng Host")
                 print("  2. Di chuyển VM từ Host này sang Host khác")
-                print("  3. Nhập lại thời gian")
+                print("  3. Cập nhật data center")
                 print("  4. Thoát")
 
                 choice = input("[RUN] >>> ").strip()
 
                 if choice == "1":
-                    for host in cluster.hosts:
-                        print(f"\n[HOST] {host.hostname}:")
-                        for vm in host.vms:
-                            print(f"   - {vm.uuid}")
+                    cluster.show_info_data_center()
 
                 elif choice == "2":
                     source = input("[MIGRATE] Nhập tên host nguồn: ").strip()
@@ -124,7 +126,7 @@ def run():
                     print(f"[MIGRATE] Đã di chuyển VM {vm_id} từ {source} sang {dest}.")
 
                 elif choice == "3":
-                    break
+                    cluster.update_vm_metrics_after_timer(timestamp, 1, vm_file, host_file)
 
                 elif choice == "4":
                     print("[RUN] Thoát chương trình.")
