@@ -27,4 +27,4 @@ source venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
-## Documentations: [Tại đây](https://github.com/DTuan2016/Simulate_data_center/doc/documentation.txt)
+## Documentations: [Doc ở đây](https://github.com/DTuan2016/Simulate_data_center/blob/master/doc/documentation.txt)
