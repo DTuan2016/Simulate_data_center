@@ -1,6 +1,4 @@
-# import math
 import numpy as np
-# import ast
 from datetime import datetime, timedelta
 class VM:
     def __init__(self, hostname, uuid, steal, usage, net_in, net_out, cpu_allocated, is_shutdown):
