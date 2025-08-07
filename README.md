@@ -27,4 +27,9 @@ source venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+
+## Chạy chương trình test:
+```bash
+python3 run.py
+```
 ## Documentations: [Tại đây](https://github.com/DTuan2016/Simulate_data_center/blob/master/doc/documentation.md)
