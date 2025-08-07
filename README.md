@@ -15,11 +15,11 @@ Trong dự án này của tôi dùng python3.11.0
 ```bash
 python -m venv venv
 ```
-### Với Linux:
+### Với Windows:
 ```bash
 venv\Scripts\activate
 ```
-### Với Windows:
+### Với Linux:
 ```bash
 source venv/bin/activate
 ```
